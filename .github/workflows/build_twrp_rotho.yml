@@ -62,9 +62,23 @@ jobs:
           sed -i "s/^TW_DEFAULT_LANGUAGE := .*/TW_DEFAULT_LANGUAGE := ${{ inputs.language }}/" device/xiaomi/rothko/BoardConfig.mk
           grep TW_DEFAULT_LANGUAGE device/xiaomi/rothko/BoardConfig.mk
 
+      - name: Swap ekle (Soong RAM'i yetmiyor)
+        run: |
+          free -h
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile /swapfile
+          sudo fallocate -l 24G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          sudo sysctl vm.swappiness=60
+          free -h
+          df -h / /mnt
+
       - name: Derle (vendor_boot.img)
         run: |
           cd ~/twrp
+          ( while true; do echo "[mem] $(free -m | awk '/Mem/{print $3"MB/"$2"MB"}') swap $(free -m | awk '/Swap/{print $3"MB"}')"; sleep 60; done ) &
           export ALLOW_MISSING_DEPENDENCIES=true
           source build/envsetup.sh
           lunch twrp_rothko-ap2a-eng || lunch twrp_rothko-eng
